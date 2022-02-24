@@ -31,6 +31,10 @@ const debug = debugFactory('loopback:boot:crud-rest');
 export interface ModelCrudRestApiConfig extends ModelApiConfig {
   // E.g. '/products'
   basePath: string;
+  /**
+   * Whether to generate readonly APIs
+   */
+  readonly?: boolean;
 }
 
 @injectable(asModelApiBuilder)
