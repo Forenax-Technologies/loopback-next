@@ -97,7 +97,7 @@ module.exports = class RestCrudGenerator extends ArtifactGenerator {
     this.option('readonly', {
       type: Boolean,
       required: false,
-      description: g.f('Optional Boolean value'),
+      description: g.f('Create readonly APIs'),
       default: false,
     });
 
