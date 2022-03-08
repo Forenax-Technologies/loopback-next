@@ -1,5 +1,5 @@
 {
-  "name": "redis-cache",
+  "name": "@loopback/example-redis-cache",
   "version": "0.0.1",
   "description": "redis-cache",
   "keywords": [
