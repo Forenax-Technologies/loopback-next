@@ -28,7 +28,7 @@ module.exports = class ExtensionGenerator extends ProjectGenerator {
 
   setOptions() {
     if (this.shouldExit()) return;
-    return super.setOptions();
+    return super.setOptions(['componentName']);
   }
 
   promptProjectName() {
