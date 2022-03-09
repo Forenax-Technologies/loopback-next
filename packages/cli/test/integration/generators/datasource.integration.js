@@ -105,6 +105,38 @@ describe('lb4 datasource integration', () => {
     });
   });
 
+  it('scaffolds correct file from config file', async () => {
+    const additionalFiles = [
+      {
+        path: 'src/datasources',
+        file: 'ds.datasource.config.json',
+        content: JSON.stringify({
+          name: 'ds',
+          connector: 'postgresql',
+          url: 'postgres://postgres:root@localhost/test',
+          database: 'test',
+          host: 'localhost',
+          port: 5432,
+          user: 'postgres',
+          password: 'root',
+        }),
+      },
+    ];
+
+    await testUtils
+      .executeGenerator(generator)
+      .inDir(sandbox.path, () =>
+        testUtils.givenLBProject(sandbox.path, {
+          additionalFiles: [...additionalFiles],
+        }),
+      )
+      .withArguments(
+        `--config ${sandbox.path}/src/datasources/ds.datasource.config.json`,
+      );
+
+    checkDataSourceFilesAgainstSnapshot();
+  });
+
   it('scaffolds correct file with cloudant input', async () => {
     await testUtils
       .executeGenerator(generator)

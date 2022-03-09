@@ -78,6 +78,10 @@ module.exports = class DataSourceGenerator extends ArtifactGenerator {
    * Ask for DataSource Name -- Must be unique
    */
   promptArtifactName() {
+    if (this.options.name) {
+      this.artifactInfo.name = this.options.name;
+      return;
+    }
     debug('Prompting for artifact name');
     if (this.shouldExit()) return false;
     const prompts = [
@@ -101,6 +105,10 @@ module.exports = class DataSourceGenerator extends ArtifactGenerator {
    * Ask the user to select the connector for the DataSource
    */
   promptConnector() {
+    if (this.options.connector) {
+      this.artifactInfo.connector = this.options.connector;
+      return;
+    }
     debug('prompting for datasource connector');
     if (this.shouldExit()) return;
     const prompts = [
@@ -162,9 +170,15 @@ module.exports = class DataSourceGenerator extends ArtifactGenerator {
         connectors[this.artifactInfo.connector]['settings']) ||
       {};
     const prompts = [];
+    const config = {};
 
     // Create list of questions to prompt the user
     Object.entries(settings).forEach(([key, setting]) => {
+      // If option provided with config, skip creating prompt
+      if (this.options[key]) {
+        config[key] = this.options[key];
+        return;
+      }
       // Set defaults and merge with `setting` to override properties
       const question = Object.assign(
         {},
@@ -208,12 +222,17 @@ module.exports = class DataSourceGenerator extends ArtifactGenerator {
 
     debug(`connector setting questions - ${JSON.stringify(prompts)}`);
 
-    // If no prompts, we need to return instead of attempting to ask prompts
-    if (!prompts.length) return;
+    // If no prompts and config, we need to return instead of attempting to ask prompts
+    if (!prompts.length && !Object.entries(config).length) return;
 
     debug('prompting the user - length > 0 for questions');
     // Ask user for prompts
     return this.prompt(prompts).then(props => {
+      // Add options from config into props
+      Object.entries(config).forEach(([key, value]) => {
+        props[key] = value;
+      });
+
       // Convert user inputs to correct types
       Object.entries(settings).forEach(([key, setting]) => {
         switch ((setting.type || '').toLowerCase()) {
