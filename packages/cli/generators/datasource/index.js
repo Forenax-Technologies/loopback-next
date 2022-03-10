@@ -168,15 +168,9 @@ module.exports = class DataSourceGenerator extends ArtifactGenerator {
         connectors[this.artifactInfo.connector]['settings']) ||
       {};
     const prompts = [];
-    const config = {};
 
     // Create list of questions to prompt the user
     Object.entries(settings).forEach(([key, setting]) => {
-      // If option provided with config, skip creating prompt
-      if (this.options[key]) {
-        config[key] = this.options[key];
-        return;
-      }
       // Set defaults and merge with `setting` to override properties
       const question = Object.assign(
         {},
@@ -221,16 +215,11 @@ module.exports = class DataSourceGenerator extends ArtifactGenerator {
     debug(`connector setting questions - ${JSON.stringify(prompts)}`);
 
     // If no prompts and config, we need to return instead of attempting to ask prompts
-    if (!prompts.length && !Object.entries(config).length) return;
+    if (!prompts.length) return;
 
     debug('prompting the user - length > 0 for questions');
     // Ask user for prompts
     return this.prompt(prompts).then(props => {
-      // Add options from config into props
-      Object.entries(config).forEach(([key, value]) => {
-        props[key] = value;
-      });
-
       // Convert user inputs to correct types
       Object.entries(settings).forEach(([key, setting]) => {
         switch ((setting.type || '').toLowerCase()) {

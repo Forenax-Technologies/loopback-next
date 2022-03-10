@@ -99,7 +99,7 @@ module.exports = class ProjectGenerator extends BaseGenerator {
     this.registerTransformStream(utils.renameEJS());
   }
 
-  async setOptions(extraOptions = []) {
+  async setOptions() {
     await super.setOptions();
     if (this.shouldExit()) return false;
     if (this.options.name) {
@@ -120,9 +120,7 @@ module.exports = class ProjectGenerator extends BaseGenerator {
       'outdir',
       'private',
       'apiconnect',
-    ]
-      .concat(this.buildOptions)
-      .concat(extraOptions);
+    ].concat(this.buildOptions);
     this.projectOptions.forEach(n => {
       if (typeof n === 'object') {
         n = n.name;

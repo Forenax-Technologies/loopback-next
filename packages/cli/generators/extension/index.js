@@ -28,7 +28,7 @@ module.exports = class ExtensionGenerator extends ProjectGenerator {
 
   setOptions() {
     if (this.shouldExit()) return;
-    return super.setOptions(['componentName']);
+    return super.setOptions();
   }
 
   promptProjectName() {
@@ -43,6 +43,13 @@ module.exports = class ExtensionGenerator extends ProjectGenerator {
 
   promptComponent() {
     if (this.shouldExit()) return;
+
+    if (this.options.componentName) {
+      Object.assign(this.projectInfo, {
+        componentName: this.options.componentName,
+      });
+    }
+
     const prompts = [
       {
         type: 'input',
