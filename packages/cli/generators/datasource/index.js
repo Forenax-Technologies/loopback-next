@@ -214,7 +214,7 @@ module.exports = class DataSourceGenerator extends ArtifactGenerator {
 
     debug(`connector setting questions - ${JSON.stringify(prompts)}`);
 
-    // If no prompts and config, we need to return instead of attempting to ask prompts
+    // If no prompts, we need to return instead of attempting to ask prompts
     if (!prompts.length) return;
 
     debug('prompting the user - length > 0 for questions');
