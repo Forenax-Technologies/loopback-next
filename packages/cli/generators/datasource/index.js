@@ -78,12 +78,14 @@ module.exports = class DataSourceGenerator extends ArtifactGenerator {
    * Ask for DataSource Name -- Must be unique
    */
   promptArtifactName() {
-    if (this.options.name) {
-      this.artifactInfo.name = this.options.name;
-      return;
-    }
     debug('Prompting for artifact name');
     if (this.shouldExit()) return false;
+
+    if (this.options.name) {
+      Object.assign(this.artifactInfo, {name: this.options.name});
+      return;
+    }
+
     const prompts = [
       {
         type: 'input',
@@ -105,10 +107,6 @@ module.exports = class DataSourceGenerator extends ArtifactGenerator {
    * Ask the user to select the connector for the DataSource
    */
   promptConnector() {
-    if (this.options.connector) {
-      this.artifactInfo.connector = this.options.connector;
-      return;
-    }
     debug('prompting for datasource connector');
     if (this.shouldExit()) return;
     const prompts = [

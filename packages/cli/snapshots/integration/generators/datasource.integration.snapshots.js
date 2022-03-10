@@ -147,42 +147,6 @@ export class DsDataSource extends juggler.DataSource
 `;
 
 
-exports[`lb4 datasource integration scaffolds correct file from config file 1`] = `
-import {inject, lifeCycleObserver, LifeCycleObserver} from '@loopback/core';
-import {juggler} from '@loopback/repository';
-
-const config = {
-  name: 'ds',
-  connector: 'postgresql',
-  url: 'postgres://postgres:root@localhost/test',
-  host: 'localhost',
-  port: 5432,
-  user: 'postgres',
-  password: 'root',
-  database: 'test'
-};
-
-// Observe application's life cycle to disconnect the datasource when
-// application is stopped. This allows the application to be shut down
-// gracefully. The \`stop()\` method is inherited from \`juggler.DataSource\`.
-// Learn more at https://loopback.io/doc/en/lb4/Life-cycle.html
-@lifeCycleObserver('datasource')
-export class DsDataSource extends juggler.DataSource
-  implements LifeCycleObserver {
-  static dataSourceName = 'ds';
-  static readonly defaultConfig = config;
-
-  constructor(
-    @inject('datasources.config.ds', {optional: true})
-    dsConfig: object = config,
-  ) {
-    super(dsConfig);
-  }
-}
-
-`;
-
-
 exports[`lb4 datasource integration scaffolds correct file with cloudant input 1`] = `
 import {inject, lifeCycleObserver, LifeCycleObserver} from '@loopback/core';
 import {juggler} from '@loopback/repository';
