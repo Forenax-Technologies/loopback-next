@@ -1,23 +1,15 @@
-# redis-cache
-
-This application is generated using
-[LoopBack 4 CLI](https://loopback.io/doc/en/lb4/Command-line-interface.html)
-with the
-[initial project layout](https://loopback.io/doc/en/lb4/Loopback-application-layout.html).
+# Redis Cache Example for Loopback 4
 
 ## Install dependencies
-
-By default, dependencies were installed when this application was generated.
-Whenever dependencies in `package.json` are changed, run the following command:
 
 ```sh
 npm install
 ```
 
-To only install resolved dependencies in `package-lock.json`:
+## Run Postgres and Redis instance
 
 ```sh
-npm ci
+docker-compose up
 ```
 
 ## Run the application
@@ -26,52 +18,263 @@ npm ci
 npm start
 ```
 
-You can also run `node .` to skip the build step.
-
 Open http://127.0.0.1:3000 in your browser.
 
-## Rebuild the project
+# How to add cache
 
-To incrementally build the project:
+### Following the guide from [loopback-api-cache](https://github.com/alfonsocj/loopback-api-cache/#loopback-api-cache)
 
-```sh
-npm run build
-```
+<br>
 
-To force a full build by cleaning up cached artifacts:
+## Installation
 
 ```sh
-npm run rebuild
+npm install --save loopback-api-cache
 ```
 
-## Fix code style and formatting issues
+## How to use it
+
+Start by creating a Model for the cache. It should have `id: string`,
+`data: any` and `ttl: number` fields.
 
 ```sh
-npm run lint
+lb4 model
 ```
-
-To automatically fix such issues:
 
 ```sh
-npm run lint:fix
+? Model class name: cache
+? Please select the model base class (Use arrow keys)
+❯ Entity (A persisted model with an ID)
+? Allow additional (free-form) properties? (y/N) No
+
+? Enter the property name: id
+? Property type: (Use arrow keys)
+❯ string
+? Is id the ID property? (y/N) Yes
+? Is it required?: Yes
+? Default value [leave blank for none]:
+
+...
 ```
 
-## Other useful commands
+At the end you would have something like
 
-- `npm run migrate`: Migrate database schemas for models
-- `npm run openapi-spec`: Generate OpenAPI spec into a file
-- `npm run docker:build`: Build a Docker image for this application
-- `npm run docker:run`: Run this application inside a Docker container
+```ts
+// src/models/cache.model.ts
+import {Entity, model, property} from '@loopback/repository';
 
-## Tests
+@model()
+export class Cache extends Entity {
+  @property({
+    type: 'number',
+    id: true,
+    required: true,
+  })
+  id: number;
+
+  @property({
+    type: 'any',
+    required: true,
+  })
+  data: any;
+
+  @property({
+    type: 'number',
+    required: true,
+  })
+  ttl: number;
+
+  constructor(data?: Partial<Cache>) {
+    super(data);
+  }
+}
+```
+
+Now create the cache datasource and repository of your choice. We are going to
+be using Redis for this example.
 
 ```sh
-npm test
+lb4 datasource
+? Datasource name: cache
+? Select the connector for cache:
+❯ Redis key-value connector (supported by StrongLoop)
+...
 ```
 
-## What's next
+```sh
+lb4 repository
+❯ CacheDatasource
+? Select the model(s) you want to generate a repository
+❯◉ Cache
+...
+```
 
-Please check out [LoopBack 4 documentation](https://loopback.io/doc/en/lb4/) to
-understand how you can continue to add features to this application.
+Decorate your controller methods with `@cache(ttl)` to be able to cache the
+response.
 
-[![LoopBack](<https://github.com/loopbackio/loopback-next/raw/master/docs/site/imgs/branding/Powered-by-LoopBack-Badge-(blue)-@2x.png>)](http://loopback.io/)
+```ts
+// src/controllers/product.controller.ts
+import {repository} from '@loopback/repository';
+import {get, param} from '@loopback/rest';
+import {cache} from 'loopback-api-cache';
+import {ProductRepository} from '../repositories';
+
+export class ProductController {
+  constructor(
+    @repository(ProductRepository)
+    public productRepository: ProductRepository,
+  ) {}
+
+  // caching response for 60 seconds
+  @cache(60)
+  @get('/products/{id}')
+  async findById(@param.path.number('id') id: number): Promise<Product> {
+    return this.productRepository.findById(id);
+  }
+}
+```
+
+Next, implement a cache strategy provider. It can contain any custom cache set
+and get logic. One use case is to instead of storing a list of products as one
+key, you can create separate keys against each product id.
+
+```ts
+// src/providers/cache-strategy.provider.ts
+import {inject, Provider, ValueOrPromise} from '@loopback/core';
+import {repository} from '@loopback/repository';
+import {CacheBindings, CacheMetadata, CacheStrategy} from 'loopback-api-cache';
+import {CacheRepository} from '../repositories';
+
+export class CacheStrategyProvider
+  implements Provider<CacheStrategy | undefined>
+{
+  constructor(
+    @inject(CacheBindings.METADATA)
+    private metadata: CacheMetadata,
+    @repository(CacheRepository) protected cacheRepo: CacheRepository,
+  ) {}
+
+  value(): ValueOrPromise<CacheStrategy | undefined> {
+    if (!this.metadata) {
+      return undefined;
+    }
+
+    return {
+      check: (path: string) =>
+        this.cacheRepo.get(path).catch(err => {
+          console.error(err);
+          return undefined;
+        }),
+      set: async (path: string, result: any) => {
+        const cache = new Cache({
+          id: result.id,
+          data: result,
+          ttl: this.metadata.ttl,
+        });
+        this.cacheRepo.set(path, cache, {ttl: ttlInMs}).catch(err => {
+          console.error(err);
+        });
+      },
+    };
+  }
+}
+```
+
+In order to perform the check and set of our cache, we need to implement a
+custom Sequence invoking the corresponding methods at the right time during the
+request handling.
+
+```ts
+// src/sequence.ts
+import {inject} from '@loopback/context';
+import {
+  FindRoute,
+  InvokeMethod,
+  ParseParams,
+  Reject,
+  RequestContext,
+  RestBindings,
+  Send,
+  SequenceHandler,
+} from '@loopback/rest';
+import {CacheBindings, CacheCheckFn, CacheSetFn} from 'loopback-api-cache';
+
+const SequenceActions = RestBindings.SequenceActions;
+
+export class MySequence implements SequenceHandler {
+  constructor(
+    @inject(SequenceActions.FIND_ROUTE) protected findRoute: FindRoute,
+    @inject(SequenceActions.PARSE_PARAMS) protected parseParams: ParseParams,
+    @inject(SequenceActions.INVOKE_METHOD) protected invoke: InvokeMethod,
+    @inject(SequenceActions.SEND) public send: Send,
+    @inject(SequenceActions.REJECT) public reject: Reject,
+    @inject(CacheBindings.CACHE_CHECK_ACTION)
+    protected checkCache: CacheCheckFn,
+    @inject(CacheBindings.CACHE_SET_ACTION) protected setCache: CacheSetFn,
+  ) {}
+
+  async handle(context: RequestContext) {
+    try {
+      const {request, response} = context;
+      const route = this.findRoute(request);
+      const args = await this.parseParams(request, route);
+
+      // Important part added to check for cache and respond with that if found
+      const cache = await this.checkCache(request);
+      if (cache) {
+        this.send(response, cache.data);
+        return;
+      }
+
+      const result = await this.invoke(route, args);
+      this.send(response, result);
+
+      // Important part added to set cache with the result
+      this.setCache(request, result);
+    } catch (error) {
+      this.reject(context, error);
+    }
+  }
+}
+```
+
+Don't forget to inject `CacheBindings.CACHE_CHECK_ACTION` and
+`CacheBindings.CACHE_SET_ACTION`
+
+```diff
++ @inject(CacheBindings.CACHE_CHECK_ACTION) protected checkCache: CacheCheckFn,
++ @inject(CacheBindings.CACHE_SET_ACTION) protected setCache: CacheSetFn,
+```
+
+Finally, put it all together in your application class:
+
+```ts
+// src/application.ts
+import {BootMixin} from '@loopback/boot';
+import {ApplicationConfig} from '@loopback/core';
+import {RestApplication, RestBindings, RestServer} from '@loopback/rest';
+import {CacheBindings, CacheComponent} from 'loopback-api-cache';
+import {MySequence} from './sequence';
+
+export class MyApp extends BootMixin(RestApplication) {
+  constructor(options?: ApplicationConfig) {
+    super(options);
+
+    this.projectRoot = __dirname;
+
+    // Add these two lines to your App
+    this.component(CacheComponent);
+    this.bind(CacheBindings.CACHE_STRATEGY).toProvider(CacheStrategyProvider);
+
+    this.sequence(MySequence);
+  }
+
+  async start() {
+    await super.start();
+
+    const server = await this.getServer(RestServer);
+    const port = await server.get(RestBindings.PORT);
+    console.log(`REST server running on port: ${port}`);
+  }
+}
+```
