@@ -32,7 +32,7 @@ export interface ModelCrudRestApiConfig extends ModelApiConfig {
   // E.g. '/products'
   basePath: string;
   /**
-   * Whether to generate readonly APIs
+   * If true, the generated controller only has find and count APIs
    */
   readonly?: boolean;
 }
