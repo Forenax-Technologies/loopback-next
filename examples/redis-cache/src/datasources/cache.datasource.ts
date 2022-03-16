@@ -3,7 +3,7 @@ import {juggler} from '@loopback/repository';
 
 const config = {
   name: 'cache',
-  connector: 'kv-redis',
+  connector: require('loopback-connector-kv-redis'),
   host: 'localhost',
   port: 6379,
   db: 0,

@@ -3,7 +3,7 @@ import {juggler} from '@loopback/repository';
 
 const config = {
   name: 'postgres',
-  connector: 'postgresql',
+  connector: require('loopback-connector-postgresql'),
   url: 'postgres://postgres:root@localhost:5438/redis_demo',
   host: 'localhost',
   port: 5438,
