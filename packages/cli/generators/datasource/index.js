@@ -80,6 +80,12 @@ module.exports = class DataSourceGenerator extends ArtifactGenerator {
   promptArtifactName() {
     debug('Prompting for artifact name');
     if (this.shouldExit()) return false;
+
+    if (this.options.name) {
+      Object.assign(this.artifactInfo, {name: this.options.name});
+      return;
+    }
+
     const prompts = [
       {
         type: 'input',
