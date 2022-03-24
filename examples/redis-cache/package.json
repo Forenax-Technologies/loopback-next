@@ -38,16 +38,21 @@
   },
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/loopbackio/loopback-next.git",
+    "directory": "examples/redis-cache"
   },
-  "author": "Awais Saeed <awaissaeed530@gmail.com>",
-  "license": "",
+  "license": "MIT",
+  "author": "IBM Corp.",
+  "copyright.owner": "IBM Corp.",
   "files": [
     "README.md",
     "dist",
     "src",
     "!*/__tests__"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@loopback/boot": "^4.1.0",
     "@loopback/core": "^3.1.0",
