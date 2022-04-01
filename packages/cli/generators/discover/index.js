@@ -31,6 +31,12 @@ module.exports = class DiscoveryGenerator extends ArtifactGenerator {
       default: true,
     });
 
+    this.option('relations', {
+      type: Boolean,
+      description: g.f('Discover and create relations'),
+      default: false,
+    });
+
     this.option('schema', {
       type: String,
       description: g.f('Schema to discover'),
@@ -284,6 +290,7 @@ module.exports = class DiscoveryGenerator extends ArtifactGenerator {
           {
             schema: modelInfo.owner,
             disableCamelCase: this.artifactInfo.disableCamelCase,
+            associations: this.options.relations,
           },
         ),
       );
@@ -320,6 +327,32 @@ module.exports = class DiscoveryGenerator extends ArtifactGenerator {
         utils.getModelFileName(modelDefinition.name),
       );
       debug(`Writing: ${fullPath}`);
+
+      if (this.options.relations) {
+        const relationImports = [];
+        const relationDestinationImports = [];
+        for (const relationName in templateData.settings.relations) {
+          const relation = templateData.settings.relations[relationName];
+          const targetModel = this.artifactInfo.modelDefinitions.find(
+            model => model.name === relation.model,
+          );
+          // If targetModel is not in discovered models, skip creating relation
+          if (targetModel) {
+            Object.assign(templateData.properties[relation.foreignKey], {
+              relation,
+            });
+            relationImports.push(relation.type);
+            relationDestinationImports.push(relation.model);
+          }
+        }
+        templateData.relationImports = relationImports;
+        templateData.relationDestinationImports = relationDestinationImports;
+        // Delete relation from modelSettings
+        delete templateData.settings.relations;
+        templateData.modelSettings = utils.stringifyModelSettings(
+          templateData.settings,
+        );
+      }
 
       this.copyTemplatedFiles(
         modelDiscoverer.MODEL_TEMPLATE_PATH,
