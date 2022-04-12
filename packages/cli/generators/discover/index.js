@@ -331,6 +331,7 @@ module.exports = class DiscoveryGenerator extends ArtifactGenerator {
       if (this.options.relations) {
         const relationImports = [];
         const relationDestinationImports = [];
+        const foreignKeys = {};
         for (const relationName in templateData.settings.relations) {
           const relation = templateData.settings.relations[relationName];
           const targetModel = this.artifactInfo.modelDefinitions.find(
@@ -343,12 +344,25 @@ module.exports = class DiscoveryGenerator extends ArtifactGenerator {
             });
             relationImports.push(relation.type);
             relationDestinationImports.push(relation.model);
+
+            foreignKeys[relationName] = {};
+            Object.assign(foreignKeys[relationName], {
+              name: relationName,
+              entity: relation.model,
+              entityKey: Object.entries(targetModel.properties).find(
+                x => x?.[1].id === 1,
+              )?.[0],
+              foreignKey: relation.foreignKey,
+            });
           }
         }
         templateData.relationImports = relationImports;
         templateData.relationDestinationImports = relationDestinationImports;
         // Delete relation from modelSettings
         delete templateData.settings.relations;
+        if (Object.keys(foreignKeys)?.length > 0) {
+          Object.assign(templateData.settings, {foreignKeys});
+        }
         templateData.modelSettings = utils.stringifyModelSettings(
           templateData.settings,
         );
