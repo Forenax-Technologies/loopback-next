@@ -42,7 +42,14 @@ async function loadSpec(specUrlStr, {log, validate} = {}) {
       },
     });
   } else {
-    spec = await parser.dereference(spec);
+    try {
+      spec = await parser.dereference(spec);
+    } catch (error) {
+      // If returns http unauthorized error, ignore resolving external ref$ pointer
+      if (error?.message?.includes('HTTP ERROR 403')) {
+        spec = await parser.dereference(spec, {resolve: {external: false}});
+      }
+    }
   }
 
   return spec;
