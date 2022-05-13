@@ -1,0 +1,55 @@
+{
+  "name": "@loopback/rest-cache",
+  "description": "Add response cache capabilities",
+  "version": "0.1.0",
+  "keywords": [
+    "LoopBack",
+    "Cache"
+  ],
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "author": "IBM Corp.",
+  "copyright.owner": "IBM Corp.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/loopbackio/loopback-next.git",
+    "directory": "extensions/rest-cache"
+  },
+  "engines": {
+    "node": "14 || 16 || 17 || 18"
+  },
+  "scripts": {
+    "build": "lb-tsc",
+    "clean": "lb-clean loopback-rest-cache*.tgz dist *.tsbuildinfo package",
+    "pretest": "npm run build",
+    "test": "lb-mocha \"dist/__tests__/**/*.js\"",
+    "verify": "npm pack && tar xf loopback-rest-cache*.tgz && tree package && npm run clean"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "README.md",
+    "dist",
+    "src",
+    "!*/__tests__"
+  ],
+  "peerDependencies": {
+    "@loopback/core": "^4.0.0",
+    "@loopback/rest": "^12.0.0"
+  },
+  "dependencies": {
+    "@types/debug": "^4.1.7",
+    "debug": "^4.3.4",
+    "tslib": "^2.4.0"
+  },
+  "devDependencies": {
+    "@loopback/build": "^9.0.0",
+    "@loopback/core": "^4.0.0",
+    "@loopback/rest": "^12.0.0",
+    "@loopback/eslint-config": "^13.0.0",
+    "@loopback/testlab": "^5.0.0",
+    "@types/node": "^14.18.18"
+  }
+}
