@@ -194,7 +194,12 @@ module.exports = class BaseGenerator extends Generator {
       return;
     }
     for (const o in opts) {
-      if (this.options[o] == null) {
+      if (
+        this.options[o] == null ||
+        typeof this.options[o] === 'boolean' ||
+        // If option is empty string
+        (typeof this.options[o] === 'string' && this.options[o].length === 0)
+      ) {
         this.options[o] = opts[o];
       }
     }
@@ -314,16 +319,17 @@ module.exports = class BaseGenerator extends Generator {
       return answers;
     }
 
-    const answers = Object.assign({}, this.options);
+    const options = Object.assign({}, this.options);
+    const answers = {};
 
     for (const q of questions) {
       let when = q.when;
       if (typeof when === 'function') {
-        when = await q.when(answers);
+        when = await q.when(options);
       }
       if (when === false) continue;
       if (this._isQuestionOptional(q)) {
-        const answer = await this._getDefaultAnswer(q, answers);
+        const answer = await this._getDefaultAnswer(q, options);
         debug('%s: %j', q.name, answer);
         answers[q.name] = answer;
       } else {
